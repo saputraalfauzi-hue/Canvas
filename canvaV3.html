@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Canvas Dark Purple — Lukis & Simpan</title>
+    <style>
+        * {
+            user-select: none;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #121016;
+            font-family: system-ui, 'Segoe UI', 'Roboto', -apple-system, sans-serif;
+            padding: 16px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            width: 100%;
+            max-width: 1100px;
+        }
+        .canvas-wrapper {
+            overflow: auto;
+            max-width: 100%;
+            background: #0b0a0f;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+            border: 1px solid #2a2536;
+            backdrop-filter: blur(2px);
+        }
+        canvas {
+            background-color: white;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+            transform-origin: 0 0;
+            transition: transform 0.1s ease;
+            box-shadow: 0 0 0 1px rgba(140, 97, 255, 0.2);
+            border-radius: 20px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+            background: rgba(30, 27, 38, 0.72);
+            backdrop-filter: blur(16px);
+            padding: 12px 24px;
+            border-radius: 80px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.06);
+            border: 1px solid rgba(140, 97, 255, 0.25);
+            transition: all 0.2s;
+        }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1e1b26;
+            padding: 6px 16px;
+            border-radius: 60px;
+            border: 1px solid #2f2a3c;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+        }
+        button, .ratio-selector, .action-btn {
+            background: #352f44;
+            border: none;
+            color: #e0dced;
+            font-size: 1.2rem;
+            font-weight: 500;
+            width: 46px;
+            height: 46px;
+            border-radius: 46px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            background: #4a3c62;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+        button:active {
+            transform: translateY(1px);
+            background: #2a2438;
+        }
+        .eraser-active {
+            background: #8c61ff !important;
+            color: white;
+            box-shadow: 0 0 12px #8c61ff, 0 2px 6px black;
+        }
+        .zoom-mode-active {
+            background: #8c61ff !important;
+            box-shadow: 0 0 14px #b77cff;
+            color: white;
+        }
+        .color-preview {
+            width: 46px;
+            height: 46px;
+            border-radius: 46px;
+            border: 2px solid #e0dced;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5), inset 0 0 2px rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .color-preview:hover {
+            transform: scale(1.02);
+        }
+        .brush-size {
+            font-weight: bold;
+            background: #0f0c16;
+            padding: 0 18px;
+            border-radius: 40px;
+            font-size: 1rem;
+            min-width: 58px;
+            text-align: center;
+            color: #e0dced;
+            line-height: 42px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+            border: 1px solid #3a324b;
+        }
+        .clear-btn {
+            background: #b45f5f;
+            color: white;
+        }
+        .clear-btn:hover {
+            background: #c97a7a;
+        }
+        select.ratio-selector {
+            background: #352f44;
+            color: #e0dced;
+            font-size: 0.85rem;
+            width: auto;
+            padding: 0 28px 0 20px;
+            border-radius: 46px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #5a4a7a;
+            appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='%23cbbdff'><path d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            height: 46px;
+        }
+        .save-load-group button {
+            width: auto;
+            padding: 0 18px;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 760px) {
+            .toolbar { gap: 12px; padding: 10px 18px; border-radius: 60px; }
+            .tool-group { padding: 4px 12px; gap: 8px; }
+            button, .color-preview, select.ratio-selector { width: 42px; height: 42px; font-size: 1rem; }
+            .brush-size { min-width: 52px; padding: 0 12px; line-height: 38px; }
+            .save-load-group button { padding: 0 14px; font-size: 0.8rem; }
+        }
+        @media (max-width: 620px) {
+            .toolbar { flex-direction: column; align-items: stretch; border-radius: 38px; gap: 10px; }
+            .tool-group { justify-content: space-between; }
+        }
+        #dynamicToast {
+            position: fixed;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e1b26ee;
+            backdrop-filter: blur(20px);
+            color: #e0dced;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 10000;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid #8c61ff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: opacity 0.2s;
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            z-index: 11000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-card {
+            background: #1a1623;
+            border-radius: 48px;
+            width: 320px;
+            max-width: 85vw;
+            padding: 20px 18px;
+            border: 1px solid #8c61ff;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.6);
+            color: #e0dced;
+        }
+        .modal-card h3 {
+            margin: 0 0 12px 0;
+            font-weight: 600;
+            text-align: center;
+        }
+        .saved-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 12px 0;
+            border-radius: 28px;
+            background: #0f0c16;
+            padding: 6px;
+        }
+        .saved-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2a2536;
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 60px;
+            gap: 8px;
+        }
+        .saved-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .load-item-btn, .delete-item-btn {
+            background: #4c3b6e;
+            border: none;
+            color: white;
+            border-radius: 40px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .load-item-btn:hover { background: #8c61ff; transform: scale(0.97);}
+        .delete-item-btn { background: #a35c5c;}
+        .close-modal {
+            background: #352f44;
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            border-radius: 60px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="canvas" width="800" height="500"></canvas>
+    </div>
+    <div class="toolbar">
+        <div class="tool-group">
+            <button id="kurangiBrush" aria-label="Kecilkan">–</button>
+            <span id="brushSizeValue" class="brush-size">5</span>
+            <button id="tambahBrush" aria-label="Perbesar">+</button>
+        </div>
+        <div class="tool-group">
+            <button id="eraserBtn" class="eraser-active" aria-label="Penghapus">🧽</button>
+            <div id="colorPickerBtn" class="color-preview" style="background-color: #000000;"></div>
+            <button id="clearCanvas" class="clear-btn" aria-label="Hapus">🗑️</button>
+        </div>
+        <div class="tool-group zoom-group">
+            <button id="zoomOutBtn" aria-label="Zoom out">🔍−</button>
+            <span id="zoomLevelText" class="brush-size">100%</span>
+            <button id="zoomInBtn" aria-label="Zoom in">🔍+</button>
+            <button id="toggleZoomModeBtn" aria-label="Mode pan">🔘</button>
+        </div>
+        <div class="tool-group">
+            <select id="aspectRatioSelect" class="ratio-selector">
+                <option value="free">📐 Bebas</option>
+                <option value="1:1">1:1</option><option value="3:4">3:4</option><option value="4:3">4:3</option>
+                <option value="16:9">16:9</option><option value="9:16">9:16</option><option value="2:3">2:3</option>
+                <option value="3:2">3:2</option><option value="18:9">18:9</option><option value="9:18">9:18</option>
+            </select>
+        </div>
+        <div class="tool-group save-load-group">
+            <button id="saveDrawingBtn" title="Simpan dengan nama">💾 Nama</button>
+            <button id="loadDrawingBtn" title="Pilih gambar">📂 Pilih</button>
+            <button id="shareDrawingBtn" title="Bagikan">📤</button>
+            <button id="downloadDrawingBtn" title="Unduh PNG">⬇️</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const wrapper = document.getElementById("canvasWrapper");
+    let menggambar = false;
+    let currentMode = "brush";
+    let brushColor = "#000000";
+    let brushWidth = 5;
+    let zoomLevel = 1;
+    const MIN_ZOOM = 0.5, MAX_ZOOM = 3.5;
+    let zoomModeActive = false;
+    let panStart = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 };
+
+    function setBrushSize(size){
+        brushWidth = Math.min(50, Math.max(2, size));
+        document.getElementById("brushSizeValue").innerText = brushWidth;
+    }
+    function getCoordinates(e){
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let clientX, clientY;
+        if(e.touches){
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        let canvasX = (clientX - rect.left) * scaleX;
+        let canvasY = (clientY - rect.top) * scaleY;
+        canvasX = Math.min(Math.max(0, canvasX), canvas.width);
+        canvasY = Math.min(Math.max(0, canvasY), canvas.height);
+        return { x: canvasX, y: canvasY };
+    }
+    function mulaiLukis(e){
+        if(zoomModeActive) return;
+        e.preventDefault();
+        menggambar = true;
+        const pos = getCoordinates(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        gambarSekali(e);
+    }
+    function berhentiLukis(e){
+        if(!menggambar) return;
+        menggambar = false;
+        ctx.beginPath();
+    }
+    function gambarSekali(e){
+        if(!menggambar || zoomModeActive) return;
+        e.preventDefault();
+        const pos = getCoordinates(e);
+        ctx.lineWidth = brushWidth;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = (currentMode === "eraser") ? "#ffffff" : brushColor;
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    }
+    function aktifkanBrush(){
+        currentMode = "brush";
+        const eraserBtn = document.getElementById("eraserBtn");
+        eraserBtn.classList.remove("eraser-active");
+        eraserBtn.style.background = "#352f44";
+    }
+    function aktifkanEraser(){
+        currentMode = "eraser";
+        const eraserBtn = document.getElementById("eraserBtn");
+        eraserBtn.classList.add("eraser-active");
+        eraserBtn.style.background = "#8c61ff";
+    }
+    function hapusSemua(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        showToast("Canvas dibersihkan");
+    }
+    function setWarna(warna){
+        brushColor = warna;
+        if(currentMode === "eraser") aktifkanBrush();
+        document.getElementById("colorPickerBtn").style.backgroundColor = warna;
+    }
+    function updateZoomUI(){
+        document.getElementById("zoomLevelText").innerText = Math.round(zoomLevel * 100) + "%";
+        canvas.style.transform = `scale(${zoomLevel})`;
+    }
+    function zoomIn(){ let n = Math.min(MAX_ZOOM, zoomLevel + 0.15); if(n !== zoomLevel){ zoomLevel = n; updateZoomUI(); } }
+    function zoomOut(){ let n = Math.max(MIN_ZOOM, zoomLevel - 0.15); if(n !== zoomLevel){ zoomLevel = n; updateZoomUI(); } }
+    function resizeCanvasKeepImage(w,h){
+        if(w === canvas.width && h === canvas.height) return;
+        if(w < 30 || h < 30) return;
+        const off = document.createElement('canvas');
+        off.width = canvas.width; off.height = canvas.height;
+        off.getContext('2d').drawImage(canvas, 0, 0);
+        canvas.width = w; canvas.height = h;
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(off, 0, 0, w, h);
+        ctx.beginPath();
+        syncAspectSelectFromSize();
+    }
+    function syncAspectSelectFromSize(){
+        const w = canvas.width, h = canvas.height;
+        const sel = document.getElementById("aspectRatioSelect");
+        if(w===600 && h===600) sel.value="1:1"; else if(w===540 && h===720) sel.value="3:4";
+        else if(w===720 && h===540) sel.value="4:3"; else if(w===800 && h===450) sel.value="16:9";
+        else if(w===450 && h===800) sel.value="9:16"; else if(w===500 && h===750) sel.value="2:3";
+        else if(w===750 && h===500) sel.value="3:2"; else if(w===800 && h===400) sel.value="18:9";
+        else if(w===400 && h===800) sel.value="9:18"; else sel.value = "free";
+    }
+    function applyAspectRatio(val){
+        if(val === "free") return;
+        let tw, th;
+        switch(val){
+            case "1:1": tw=600; th=600; break; case "3:4": tw=540; th=720; break;
+            case "4:3": tw=720; th=540; break; case "16:9": tw=800; th=450; break;
+            case "9:16": tw=450; th=800; break; case "2:3": tw=500; th=750; break;
+            case "3:2": tw=750; th=500; break; case "18:9": tw=800; th=400; break;
+            case "9:18": tw=400; th=800; break; default: return;
+        }
+        resizeCanvasKeepImage(tw, th);
+    }
+    function showToast(msg, duration=1700){
+        let toast = document.getElementById("dynamicToast");
+        if(!toast){
+            toast = document.createElement("div");
+            toast.id = "dynamicToast";
+            document.body.appendChild(toast);
+        }
+        toast.innerText = msg;
+        toast.style.opacity = "1";
+        clearTimeout(window.toastTimeout);
+        window.toastTimeout = setTimeout(() => toast.style.opacity = "0", duration);
+    }
+    function toggleZoomMode(){
+        zoomModeActive = !zoomModeActive;
+        const btn = document.getElementById("toggleZoomModeBtn");
+        if(zoomModeActive){
+            btn.classList.add("zoom-mode-active");
+            canvas.style.cursor = "grab";
+            showToast("🔍 Mode ZOOM aktif (seret untuk pan, tidak melukis)", 1200);
+        } else {
+            btn.classList.remove("zoom-mode-active");
+            canvas.style.cursor = "crosshair";
+            showToast("✏️ Mode LUKIS aktif", 800);
+        }
+    }
+    function startPan(e){
+        if(!zoomModeActive) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        panStart.x = cx; panStart.y = cy;
+        panStart.scrollLeft = wrapper.scrollLeft;
+        panStart.scrollTop = wrapper.scrollTop;
+        canvas.style.cursor = "grabbing";
+    }
+    function onPanMove(e){
+        if(!zoomModeActive) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        const dx = cx - panStart.x;
+        const dy = cy - panStart.y;
+        wrapper.scrollLeft = panStart.scrollLeft - dx;
+        wrapper.scrollTop = panStart.scrollTop - dy;
+    }
+    function endPan(){ if(zoomModeActive) canvas.style.cursor = "grab"; }
+
+    // SIMPAN DENGAN NAMA
+    function saveDrawingWithName(){
+        let name = prompt("🎨 Nama gambar:", "lukisan_" + new Date().toISOString().slice(0,19).replace(/:/g, '-'));
+        if(!name || name.trim() === "") { showToast("Batal menyimpan"); return; }
+        name = name.trim();
+        const key = "canvas_saved_" + name;
+        const dataURL = canvas.toDataURL("image/png");
+        localStorage.setItem(key, dataURL);
+        showToast(`✅ "${name}" tersimpan`);
+    }
+    // LOAD DENGAN MEMILIH GAMBAR (modal daftar)
+    function showLoadModal(){
+        const keys = Object.keys(localStorage).filter(k => k.startsWith("canvas_saved_"));
+        if(keys.length === 0){
+            showToast("Belum ada gambar tersimpan, simpan dulu dengan tombol 💾 Nama");
+            return;
+        }
+        const modalDiv = document.createElement("div");
+        modalDiv.className = "modal-backdrop";
+        const card = document.createElement("div");
+        card.className = "modal-card";
+        card.innerHTML = `<h3>📁 Pilih gambar</h3><div class="saved-list" id="savedListContainer"></div><button class="close-modal" id="closeModalBtn">Tutup</button>`;
+        modalDiv.appendChild(card);
+        document.body.appendChild(modalDiv);
+        const listContainer = card.querySelector("#savedListContainer");
+        keys.forEach(key => {
+            const name = key.replace("canvas_saved_", "");
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "saved-item";
+            itemDiv.innerHTML = `<span class="saved-name">${escapeHtml(name)}</span>
+                <button class="load-item-btn" data-key="${key}">📂 Muat</button>
+                <button class="delete-item-btn" data-key="${key}">🗑️</button>`;
+            listContainer.appendChild(itemDiv);
+        });
+        function escapeHtml(str){ return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+        const closeModal = () => modalDiv.remove();
+        card.querySelector("#closeModalBtn").addEventListener("click", closeModal);
+        modalDiv.addEventListener("click", (e) => { if(e.target === modalDiv) closeModal(); });
+        listContainer.querySelectorAll(".load-item-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const key = btn.getAttribute("data-key");
+                const dataURL = localStorage.getItem(key);
+                if(dataURL){
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        showToast(`Dimuat: ${key.replace("canvas_saved_","")}`);
+                        closeModal();
+                    };
+                    img.onerror = () => { alert("Gagal memuat gambar"); closeModal(); };
+                    img.src = dataURL;
+                } else { alert("Data tidak ditemukan"); closeModal(); }
+            });
+        });
+        listContainer.querySelectorAll(".delete-item-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const key = btn.getAttribute("data-key");
+                if(confirm(`Hapus "${key.replace("canvas_saved_","")}" ?`)){
+                    localStorage.removeItem(key);
+                    showToast(`Terhapus: ${key.replace("canvas_saved_","")}`);
+                    closeModal();
+                    showLoadModal();
+                }
+            });
+        });
+    }
+    function downloadCanvas(){
+        const link = document.createElement("a");
+        link.download = `canvas_art_${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("⬇️ Unduh dimulai");
+    }
+    async function shareCanvas(){
+        if(!navigator.share){ alert("Browser tidak mendukung bagikan langsung"); return; }
+        try{
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+            await navigator.share({ title: 'Karya seni', files: [new File([blob], "art.png", {type: "image/png"})] });
+            showToast("Berhasil dibagikan");
+        }catch(e){ if(e.name !== "AbortError") alert("Gagal berbagi"); }
+    }
+    function attachEvents(){
+        canvas.addEventListener("mousedown", mulaiLukis);
+        window.addEventListener("mouseup", berhentiLukis);
+        canvas.addEventListener("mousemove", gambarSekali);
+        canvas.addEventListener("mouseleave", berhentiLukis);
+        canvas.addEventListener("touchstart", mulaiLukis, {passive: false});
+        canvas.addEventListener("touchmove", gambarSekali, {passive: false});
+        canvas.addEventListener("touchend", berhentiLukis);
+        canvas.addEventListener("touchcancel", berhentiLukis);
+        document.getElementById("kurangiBrush").addEventListener("click", () => setBrushSize(brushWidth - 2));
+        document.getElementById("tambahBrush").addEventListener("click", () => setBrushSize(brushWidth + 2));
+        document.getElementById("eraserBtn").addEventListener("click", () => { currentMode === "eraser" ? aktifkanBrush() : aktifkanEraser(); });
+        document.getElementById("clearCanvas").addEventListener("click", () => { if(confirm("Bersihkan seluruh kanvas?")) hapusSemua(); });
+        const colorPicker = document.createElement("input");
+        colorPicker.type = "color"; colorPicker.value = "#000000";
+        colorPicker.addEventListener("input", e => setWarna(e.target.value));
+        document.getElementById("colorPickerBtn").addEventListener("click", () => colorPicker.click());
+        document.getElementById("zoomInBtn").addEventListener("click", zoomIn);
+        document.getElementById("zoomOutBtn").addEventListener("click", zoomOut);
+        document.getElementById("toggleZoomModeBtn").addEventListener("click", toggleZoomMode);
+        document.getElementById("aspectRatioSelect").addEventListener("change", (e) => applyAspectRatio(e.target.value));
+        document.getElementById("saveDrawingBtn").addEventListener("click", saveDrawingWithName);
+        document.getElementById("loadDrawingBtn").addEventListener("click", showLoadModal);
+        document.getElementById("shareDrawingBtn").addEventListener("click", shareCanvas);
+        document.getElementById("downloadDrawingBtn").addEventListener("click", downloadCanvas);
+        canvas.addEventListener("mousedown", startPan);
+        canvas.addEventListener("mousemove", onPanMove);
+        canvas.addEventListener("mouseup", endPan);
+        canvas.addEventListener("touchstart", startPan, {passive: false});
+        canvas.addEventListener("touchmove", onPanMove, {passive: false});
+        canvas.addEventListener("touchend", endPan);
+    }
+    function init(){
+        setBrushSize(5);
+        aktifkanBrush();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        updateZoomUI();
+        syncAspectSelectFromSize();
+        attachEvents();
+    }
+    init();
+})();
+</script>
+</body>
+</html>
